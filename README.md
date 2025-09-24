@@ -1,4 +1,4 @@
-# **Photo-Mate-i2i**
+# **[Photo-Mate-i2i](https://huggingface.co/spaces/prithivMLmods/Photo-Mate-i2i)**
 
 Photo-Mate-i2i is a Hugging Face Space for experimenting with adapters for image manipulation using FLUX.1 Kontext adapters. It includes specialized LoRA adapters such as Photo-Restore-i2i, PhotoCleanser-i2i, Polaroid-Warm-i2i, Monochrome-Pencil-i2i, and more. This app allows users to upload images, apply edits via prompts, and enhance them with various styles or restorations.
 
@@ -81,3 +81,4 @@ Note: Requires a CUDA-enabled GPU for optimal performance. The app checks for CU
 
 
 For issues or contributions, visit the GitHub repository.
+
