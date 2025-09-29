@@ -35,6 +35,9 @@ pipe.load_lora_weights("prithivMLmods/PhotoCleanser-i2i", weight_name="PhotoClea
 pipe.load_lora_weights("prithivMLmods/Photo-Restore-i2i", weight_name="Photo-Restore-i2i.safetensors", adapter_name="restorer")
 pipe.load_lora_weights("prithivMLmods/Polaroid-Warm-i2i", weight_name="Polaroid-Warm-i2i.safetensors", adapter_name="polaroid")
 pipe.load_lora_weights("prithivMLmods/Monochrome-Pencil", weight_name="Monochrome-Pencil-i2i.safetensors", adapter_name="pencil")
+# Add the new LZO adapter
+pipe.load_lora_weights("prithivMLmods/LZO-1-Preview", weight_name="LZO-1-Preview.safetensors", adapter_name="lzo")
+
 
 # --- Upscaler Model Initialization ---
 aura_sr = AuraSR.from_pretrained("fal/AuraSR-v2")
@@ -61,6 +64,10 @@ def infer(input_image, prompt, lora_adapter, upscale_image, seed=42, randomize_s
         pipe.set_adapters(["polaroid"], adapter_weights=[1.0])
     elif lora_adapter == "MonochromePencil":
         pipe.set_adapters(["pencil"], adapter_weights=[1.0])
+    # Add the new LZO adapter condition
+    elif lora_adapter == "LZO-Zoom":
+        pipe.set_adapters(["lzo"], adapter_weights=[1.0])
+
 
     if randomize_seed:
         seed = random.randint(0, MAX_SEED)
@@ -158,7 +165,7 @@ with gr.Blocks(css=css, theme="bethecloud/storj_theme") as demo:
                 with gr.Row():
                     lora_adapter = gr.Dropdown(
                     label="Chosen LoRA",
-                    choices=["PhotoCleanser", "PhotoRestorer", "PolaroidWarm", "MonochromePencil"],
+                    choices=["PhotoCleanser", "PhotoRestorer", "PolaroidWarm", "MonochromePencil", "LZO-Zoom"],
                     value="PhotoCleanser"
                 )
                     
@@ -171,9 +178,12 @@ with gr.Blocks(css=css, theme="bethecloud/storj_theme") as demo:
                 ["photocleanser/2.png", "[photo content], remove the cat from the image while preserving the background and remaining elements, maintaining realism and original details.", "PhotoCleanser"],
                 ["photocleanser/1.png", "[photo content], remove the football from the image while preserving the background and remaining elements, maintaining realism and original details.", "PhotoCleanser"],
                 ["photorestore/1.png", "[photo content], restore and enhance the image by repairing any damage, scratches, or fading. Colorize the photo naturally while preserving authentic textures and details, maintaining a realistic and historically accurate look.", "PhotoRestorer"],
+                # Add the new LZO example
+                ["lzo/1.jpg", "[photo content], zoom in on the specified [face close-up], enhancing resolution and detail while preserving sharpness, realism, and original context. Maintain natural proportions and background continuity around the zoomed area.", "LZO-Zoom"],
                 ["photorestore/2.png", "[photo content], restore and enhance the image by repairing any damage, scratches, or fading. Colorize the photo naturally while preserving authentic textures and details, maintaining a realistic and historically accurate look.", "PhotoRestorer"],
                 ["polaroid/1.png", "[photo content], in the style of a vintage Polaroid, with warm, faded tones, and a white border.", "PolaroidWarm"],
                 ["pencil/1.png", "[photo content], replicate the image as a pencil illustration, black and white, with sketch-like detailing.", "MonochromePencil"],
+
             ],
             inputs=[input_image, prompt, lora_adapter],
             # The output now targets the ImageSlider component
