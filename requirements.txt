@@ -5,7 +5,6 @@ git+https://github.com/huggingface/peft.git
 huggingface_hub
 sentencepiece 
 torchvision
-aura-sr
 spaces
 gradio
 torch
