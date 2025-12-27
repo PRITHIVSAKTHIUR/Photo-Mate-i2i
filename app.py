@@ -10,21 +10,8 @@ from typing import Iterable
 from diffusers import FluxKontextPipeline
 from diffusers.utils import load_image
 from huggingface_hub import hf_hub_download
-from aura_sr import AuraSR
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-# --- # Device and CUDA Setup Check ---
-print("CUDA_VISIBLE_DEVICES=", os.environ.get("CUDA_VISIBLE_DEVICES"))
-print("torch.__version__ =", torch.__version__)
-print("torch.version.cuda =", torch.version.cuda)
-print("cuda available:", torch.cuda.is_available())
-print("cuda device count:", torch.cuda.device_count())
-if torch.cuda.is_available():
-    print("current device:", torch.cuda.current_device())
-    print("device name:", torch.cuda.get_device_name(torch.cuda.current_device()))
-
-print("Using device:", device)
 
 from gradio.themes import Soft
 from gradio.themes.utils import colors, fonts, sizes
@@ -97,11 +84,9 @@ class OrangeRedTheme(Soft):
 
 orange_red_theme = OrangeRedTheme()
 
-# --- Main Model Initialization ---
 MAX_SEED = np.iinfo(np.int32).max
 pipe = FluxKontextPipeline.from_pretrained("black-forest-labs/FLUX.1-Kontext-dev", torch_dtype=torch.bfloat16).to("cuda")
 
-# --- Load All Adapters ---
 pipe.load_lora_weights("prithivMLmods/PhotoCleanser-i2i", weight_name="PhotoCleanser-i2i.safetensors", adapter_name="cleanser")
 pipe.load_lora_weights("prithivMLmods/Photo-Restore-i2i", weight_name="Photo-Restore-i2i.safetensors", adapter_name="restorer")
 pipe.load_lora_weights("prithivMLmods/Polaroid-Warm-i2i", weight_name="Polaroid-Warm-i2i.safetensors", adapter_name="polaroid")
@@ -110,14 +95,8 @@ pipe.load_lora_weights("prithivMLmods/LZO-1-Preview", weight_name="LZO-1-Preview
 pipe.load_lora_weights("prithivMLmods/Kontext-Watermark-Remover", weight_name="Kontext-Watermark-Remover.safetensors", adapter_name="watermark-remover")
 pipe.load_lora_weights("prithivMLmods/Kontext-Unblur-Upscale", weight_name="Kontext-Image-Upscale.safetensors", adapter_name="unblur-upscale")
 
-# --- Upscaler Model Initialization ---
-aura_sr = AuraSR.from_pretrained("fal/AuraSR-v2")
-
 @spaces.GPU
-def infer(input_image, prompt, lora_adapter, upscale_image, seed=42, randomize_seed=False, guidance_scale=2.5, steps=28, progress=gr.Progress(track_tqdm=True)):
-    """
-    Perform image editing and optional upscaling, returning the final image.
-    """
+def infer(input_image, prompt, lora_adapter, seed=42, randomize_seed=False, guidance_scale=2.5, steps=28, progress=gr.Progress(track_tqdm=True)):
     if not input_image:
         raise gr.Error("Please upload an image for editing.")
 
@@ -151,18 +130,11 @@ def infer(input_image, prompt, lora_adapter, upscale_image, seed=42, randomize_s
         generator=torch.Generator().manual_seed(seed),
     ).images[0]
 
-    if upscale_image:
-        progress(0.8, desc="Upscaling image...")
-        image = aura_sr.upscale_4x(image)
-
-    return image, seed, gr.Button(visible=True)
+    return image, seed
 
 @spaces.GPU
 def infer_example(input_image, prompt, lora_adapter):
-    """
-    Wrapper function for gr.Examples.
-    """
-    image, seed, _ = infer(input_image, prompt, lora_adapter, upscale_image=False)
+    image, seed = infer(input_image, prompt, lora_adapter)
     return image, seed
 
 css="""
@@ -220,8 +192,7 @@ with gr.Blocks() as demo:
                     )
                     
             with gr.Column():
-                output_image = gr.Image(label="Output Image", interactive=False, format="png", height=355)
-                reuse_button = gr.Button("Reuse this image", visible=False)
+                output_image = gr.Image(label="Output Image", interactive=False, format="png", height=419)
                 
                 with gr.Row():
                     lora_adapter = gr.Dropdown(
@@ -229,9 +200,6 @@ with gr.Blocks() as demo:
                         choices=["PhotoCleanser", "PhotoRestorer", "PolaroidWarm", "MonochromePencil", "LZO-Zoom", "Kontext-Watermark-Remover", "Kontext-Unblur-Upscale"],
                         value="PhotoCleanser"
                     )
-                    
-                with gr.Row():
-                    upscale_checkbox = gr.Checkbox(label="Upscale the final image", value=False)
 
         gr.Examples(
             examples=[
@@ -256,14 +224,8 @@ with gr.Blocks() as demo:
     gr.on(
         triggers=[run_button.click, prompt.submit],
         fn=infer,
-        inputs=[input_image, prompt, lora_adapter, upscale_checkbox, seed, randomize_seed, guidance_scale, steps],
-        outputs=[output_image, seed, reuse_button]
-    )
-    
-    reuse_button.click(
-        fn=lambda x: x,
-        inputs=[output_image],
-        outputs=[input_image]
+        inputs=[input_image, prompt, lora_adapter, seed, randomize_seed, guidance_scale, steps],
+        outputs=[output_image, seed]
     )
 
 demo.launch(css=css, theme=orange_red_theme, mcp_server=True, ssr_mode=False, show_error=True)
