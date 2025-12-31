@@ -6,4 +6,6 @@ huggingface_hub
 sentencepiece 
 torchvision
 spaces
+gradio
 torch
+
